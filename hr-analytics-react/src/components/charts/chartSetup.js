@@ -6,13 +6,21 @@ import {
   LineElement,
   PointElement,
   ArcElement,
+  BarController,
+  LineController,
+  DoughnutController,
   Title,
   Tooltip,
   Legend,
   Filler,
 } from 'chart.js';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, Filler);
+ChartJS.register(
+  CategoryScale, LinearScale,
+  BarElement, LineElement, PointElement, ArcElement,
+  BarController, LineController, DoughnutController,
+  Title, Tooltip, Legend, Filler
+);
 
 export const PALETTE = {
   ink: '#0E1B2E', brass: '#A9803E', brassLight: '#D9BD8C',
