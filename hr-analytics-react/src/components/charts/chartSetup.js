@@ -44,4 +44,14 @@ ChartJS.defaults.elements.line.borderWidth = 2.5;
 ChartJS.defaults.elements.point.radius = 3;
 ChartJS.defaults.elements.point.hoverRadius = 5;
 
+// Inside React, the chart's container often gets a ResizeObserver "resize" tick
+// right after mount (once the CSS grid/flex layout settles) — and Chart.js's
+// default behaviour is to skip animation on that resize (duration: 0), which
+// can pre-empt the entrance animation and make the chart appear to "snap" in
+// instantly instead of growing in. Explicitly animating the resize transition
+// too makes the entrance animation reliable regardless of that race.
+ChartJS.defaults.animation = { duration: 800, easing: 'easeOutQuart' };
+ChartJS.defaults.transitions.resize.animation = { duration: 800, easing: 'easeOutQuart' };
+ChartJS.defaults.resizeDelay = 0;
+
 export { ChartJS };
