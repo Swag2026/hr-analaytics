@@ -36,8 +36,10 @@ export default function App() {
     <DataProvider>
       <Gate>
         <ModalProvider>
-          <FiltersProvider>
-            <HashRouter>
+          <HashRouter>
+            {/* FiltersProvider must be INSIDE HashRouter — it calls useLocation(),
+                which only works for descendants of the Router. */}
+            <FiltersProvider>
               <Routes>
                 <Route element={<Shell />}>
                   <Route index element={<Navigate to="/dashboard" replace />} />
@@ -61,8 +63,8 @@ export default function App() {
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Route>
               </Routes>
-            </HashRouter>
-          </FiltersProvider>
+            </FiltersProvider>
+          </HashRouter>
         </ModalProvider>
       </Gate>
     </DataProvider>
