@@ -60,7 +60,7 @@ export const ROUTES = [
   },
   {
     id: 'upload', path: '/upload', title: 'رفع ملف رواتب جديد',
-    meta: () => 'محاكاة تجربة الرفع والتنظيف التلقائي — تعمل حاليًا كواجهة أمامية فقط (Frontend Simulation)',
+    meta: () => 'رفع ملف Excel شهري — يقرأ النظام الملف فعليًا ويحدّث بيانات الموظفين والرواتب',
     filters: { company: false, month: false },
   },
   {
@@ -70,6 +70,11 @@ export const ROUTES = [
   {
     id: 'kpi-dictionary', path: '/kpi-dictionary', title: 'قاموس المؤشرات',
     meta: () => 'KPI Dictionary — تعريف كل مؤشر ومعادلته ومصدر بياناته', filters: { company: false, month: false },
+  },
+  {
+    id: 'users', path: '/users', title: 'المستخدمون',
+    meta: () => 'إدارة حسابات تسجيل الدخول — إضافة، تعديل الصلاحيات، تغيير كلمة المرور، أو حذف مستخدم (للمشرفين فقط)',
+    filters: { company: false, month: false },
   },
   {
     id: 'settings', path: '/settings', title: 'الإعدادات',

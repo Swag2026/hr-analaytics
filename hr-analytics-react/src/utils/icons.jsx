@@ -77,6 +77,7 @@ export const NAV_SECTIONS = [
     { id: 'upload', label: 'رفع الملفات', icon: 'upload' },
     { id: 'reports', label: 'مركز التقارير', icon: 'file-text' },
     { id: 'kpi-dictionary', label: 'قاموس المؤشرات', icon: 'book' },
+    { id: 'users', label: 'المستخدمون', icon: 'users' },
     { id: 'settings', label: 'الإعدادات', icon: 'settings' },
   ]},
 ];

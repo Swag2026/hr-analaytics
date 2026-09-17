@@ -1,10 +1,14 @@
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { LanguageProvider } from './context/LanguageContext.jsx';
 import { DataProvider, useHrData } from './context/DataContext.jsx';
 import { ModalProvider } from './context/ModalContext.jsx';
 import { FiltersProvider } from './context/FiltersContext.jsx';
 import Shell from './components/Shell.jsx';
 import Loader from './components/Loader.jsx';
+import Login from './pages/Login.jsx';
+import Apps from './pages/Apps.jsx';
 
 import Dashboard from './pages/Dashboard.jsx';
 import Companies from './pages/Companies.jsx';
@@ -22,27 +26,34 @@ import CorrectionLog from './pages/CorrectionLog.jsx';
 import Upload from './pages/Upload.jsx';
 import Reports from './pages/Reports.jsx';
 import KpiDictionary from './pages/KpiDictionary.jsx';
+import Users from './pages/Users.jsx';
 import Settings from './pages/Settings.jsx';
 
-function Gate({ children }) {
+function DataGate({ children }) {
   const { data, loading } = useHrData();
   if (loading) return null;
   if (!data) return <Loader />;
   return children;
 }
 
-export default function App() {
+// Decides between the login screen and the authenticated app. DataProvider is
+// only mounted once a token exists, since it needs the token to fetch data.
+function AuthGate() {
+  const { isAuthenticated, checking } = useAuth();
+  if (checking) return null;
+  if (!isAuthenticated) return <Login />;
+
   return (
     <DataProvider>
-      <Gate>
+      <DataGate>
         <ModalProvider>
           <HashRouter>
             {/* FiltersProvider must be INSIDE HashRouter — it calls useLocation(),
                 which only works for descendants of the Router. */}
             <FiltersProvider>
               <Routes>
+                <Route path="/apps" element={<Apps />} />
                 <Route element={<Shell />}>
-                  <Route index element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/companies" element={<Companies />} />
                   <Route path="/branches" element={<Branches />} />
@@ -59,14 +70,26 @@ export default function App() {
                   <Route path="/upload" element={<Upload />} />
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/kpi-dictionary" element={<KpiDictionary />} />
+                  <Route path="/users" element={<Users />} />
                   <Route path="/settings" element={<Settings />} />
-                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Route>
+                <Route path="/" element={<Navigate to="/apps" replace />} />
+                <Route path="*" element={<Navigate to="/apps" replace />} />
               </Routes>
             </FiltersProvider>
           </HashRouter>
         </ModalProvider>
-      </Gate>
+      </DataGate>
     </DataProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AuthProvider>
+        <AuthGate />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

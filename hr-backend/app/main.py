@@ -13,6 +13,7 @@ from . import employees as employees_router
 from . import payroll as payroll_router
 from . import upload as upload_router
 from . import payslip as payslip_router
+from . import users as users_router
 
 app = FastAPI(title="HR Analytics API")
 
@@ -31,6 +32,7 @@ app.include_router(employees_router.router)
 app.include_router(payroll_router.router)
 app.include_router(upload_router.router)
 app.include_router(payslip_router.router)
+app.include_router(users_router.router)
 
 
 class UserOut(BaseModel):
