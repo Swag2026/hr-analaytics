@@ -59,6 +59,7 @@ export const EN = {
   allMonths: 'All Months (Jan – Aug)',
 
   // apps launcher
+  appHr: 'HR',
   appsHeaderUserLogout: 'Logout',
 };
 

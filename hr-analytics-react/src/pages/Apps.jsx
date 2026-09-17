@@ -1,12 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NAV_SECTIONS, Icon } from '../utils/icons.jsx';
+import { Icon } from '../utils/icons.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import LangToggle from '../components/LangToggle.jsx';
 
-// One color per section — cycles if more sections are added later.
-const SECTION_COLORS = ['brass', 'info', 'success', 'warning', 'critical', 'ink'];
+// Each entry here is one Odoo-style "app" — a whole system with its own sidebar
+// once you're inside it. Right now there is just the HR system; more systems
+// (e.g. links to other internal tools) can be added to this list later.
+const APPS = [
+  { id: 'hr', to: '/dashboard', icon: 'users', color: 'brass', labelKey: 'appHr' },
+];
 
 export default function Apps() {
   const navigate = useNavigate();
@@ -31,24 +35,19 @@ export default function Apps() {
       </header>
 
       <div className="apps-body">
-        {NAV_SECTIONS.map((sec, i) => (
-          <div className="apps-section" key={sec.label}>
-            <div className="apps-section-label">{t(sec.label, sec.label)}</div>
-            <div className="apps-grid">
-              {sec.items.filter((it) => it.id !== 'users' || user?.role === 'admin').map((it) => (
-                <button
-                  key={it.id}
-                  className={`app-tile color-${SECTION_COLORS[i % SECTION_COLORS.length]}`}
-                  onClick={() => navigate(`/${it.id}`)}
-                  type="button"
-                >
-                  <span className="app-tile-icon"><Icon name={it.icon} size={26} /></span>
-                  <span className="app-tile-label">{t(`nav.${it.id}`, it.label)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
+        <div className="apps-grid apps-grid-main">
+          {APPS.map((a) => (
+            <button
+              key={a.id}
+              className={`app-tile app-tile-lg color-${a.color}`}
+              onClick={() => navigate(a.to)}
+              type="button"
+            >
+              <span className="app-tile-icon"><Icon name={a.icon} size={34} /></span>
+              <span className="app-tile-label">{t(a.labelKey, 'الموارد البشرية')}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
