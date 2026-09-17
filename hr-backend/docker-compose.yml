@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16
+    container_name: hr-analytics-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hr_analytics
+      POSTGRES_USER: hr_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - hr_pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hr_admin -d hr_analytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: hr-analytics-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://hr_admin:${DB_PASSWORD:-changeme}@db:5432/hr_analytics
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      JWT_EXPIRE_MINUTES: "1440"
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+    ports:
+      - "8430:8000"
+
+volumes:
+  hr_pgdata:
