@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { API_BASE_URL } from '../config.js';
+import { useAuth } from './AuthContext.jsx';
 
 const DataContext = createContext(null);
 
 // The "slim" prototype this app was ported from used placeholder field names
 // (name, previous_company_label, salary_change_pct, effective_month_name) for
-// movement_ledger. The real generated HR_DATA.json instead uses
-// employee_name / previous_company (raw key) / salary_change (absolute SAR) /
-// effective_month (number). This normalizes either shape into the one the
-// Movements page renders, without touching any other collection.
+// movement_ledger. The real backend instead uses employee_name / previous_company
+// (raw key) / salary_change (absolute SAR) / effective_month (number). This
+// normalizes either shape into the one the Movements page renders.
 function normalizeMovementLedger(list, companyLabels, monthNames) {
   if (!Array.isArray(list)) return list;
   return list.map((l) => {
@@ -39,44 +40,26 @@ export function useHrData() {
 }
 
 export function DataProvider({ children }) {
+  const { token, handleUnauthorized } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const boot = useCallback((json) => {
-    if (!json || !json.meta || !json.monthly || !json.payroll_records) {
-      throw new Error('Invalid HR data');
-    }
-    setData(normalizeData(json));
-    setError('');
-  }, []);
+  const refresh = useCallback(() => {
+    if (!token) return;
+    setLoading(true);
+    fetch(`${API_BASE_URL}/api/hr-data`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        if (res.status === 401) { handleUnauthorized(); throw new Error('انتهت الجلسة'); }
+        if (!res.ok) throw new Error('تعذر تحميل البيانات من الخادم');
+        return res.json();
+      })
+      .then((json) => { setData(normalizeData(json)); setError(''); })
+      .catch((err) => setError(err.message || 'تعذر تحميل البيانات من الخادم'))
+      .finally(() => setLoading(false));
+  }, [token, handleUnauthorized]);
 
-  const importFile = useCallback((file) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        boot(JSON.parse(reader.result));
-      } catch (err) {
-        setError('ملف JSON غير صالح أو لا يحتوي على بيانات النظام.');
-      }
-    };
-    reader.onerror = () => setError('تعذر قراءة الملف.');
-    reader.readAsText(file, 'utf-8');
-  }, [boot]);
-
-  useEffect(() => {
-    // Same auto-load strategy as the original: try fetching HR_DATA.json next to
-    // the app when served over http(s); otherwise fall straight to manual import.
-    if (window.location.protocol !== 'file:') {
-      fetch('/HR_DATA.json', { cache: 'no-store' })
-        .then((res) => { if (!res.ok) throw new Error('JSON not found'); return res.json(); })
-        .then((json) => { boot(json); setLoading(false); })
-        .catch(() => { setLoading(false); });
-    } else {
-      setLoading(false);
-    }
-  }, [boot]);
+  useEffect(() => { refresh(); }, [refresh]);
 
   const monthName = useCallback((m) => (data ? data.meta.month_names[m] || m : m), [data]);
   const companyLabel = useCallback((c) => (data ? data.meta.company_labels[c] || c : c), [data]);
@@ -85,7 +68,7 @@ export function DataProvider({ children }) {
     [data]
   );
 
-  const value = { data, error, loading, importFile, monthName, companyLabel, defaultMeta };
+  const value = { data, error, loading, refresh, monthName, companyLabel, defaultMeta };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

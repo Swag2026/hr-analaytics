@@ -3,41 +3,54 @@ import { useHrData } from '../context/DataContext.jsx';
 import { RiskBadge, Badge, EmptyState } from '../components/Atoms.jsx';
 import { fmtSAR } from '../utils/format.js';
 import { Icon } from '../utils/icons.jsx';
+import { useApi } from '../hooks/useApi.js';
 
 const ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 const DECISION_LABELS = { DOUBLE_PAYMENT: 'تم اعتمادها كصرف مزدوج مؤكد', TRANSFER: 'تم اعتبارها نقلًا بين الشركات', DATA_ERROR: 'تم اعتبارها خطأ بيانات', CLOSED: 'تم إغلاق الحالة' };
 const DECISION_COLORS = { DOUBLE_PAYMENT: 'critical', TRANSFER: 'low', DATA_ERROR: 'medium', CLOSED: 'neutral' };
 
 export default function ReviewCenter() {
-  const { data: HR_DATA } = useHrData();
-  const [decisions, setDecisions] = useState({}); // in-memory only (prototype) — Backend should persist this
+  const { data: HR_DATA, refresh } = useHrData();
+  const { apiJson } = useApi();
+  const [busyId, setBusyId] = useState(null);
+  const [err, setErr] = useState('');
 
   const sorted = [...HR_DATA.overlap_cases].sort((a, b) => ORDER[a.risk_level] - ORDER[b.risk_level]);
+  const decidedCount = HR_DATA.overlap_cases.filter((o) => o.decision).length;
 
-  function decide(caseId, decision) {
-    setDecisions((prev) => ({ ...prev, [caseId]: decision }));
+  async function decide(caseId, decision) {
+    setBusyId(caseId);
+    setErr('');
+    try {
+      await apiJson(`/api/review-decisions/${caseId}`, { method: 'PUT', body: JSON.stringify({ decision }) });
+      refresh();
+    } catch (e) {
+      setErr(e.message || 'تعذر حفظ القرار');
+    } finally {
+      setBusyId(null);
+    }
   }
-
-  const decidedCount = Object.keys(decisions).length;
 
   return (
     <>
       <div className="kpi-grid mb-24">
         <div className="kpi-card"><div className="label">حالات تحتاج مراجعة</div><div className="value">{HR_DATA.overlap_cases.length}</div></div>
         <div className="kpi-card"><div className="label">إجمالي التعرض المالي المحتمل</div><div className="value" style={{ color: 'var(--critical)' }}>{fmtSAR(HR_DATA.overlap_cases.reduce((s, o) => s + o.potential_exposure, 0))}</div></div>
-        <div className="kpi-card"><div className="label">{decidedCount ? `تم اتخاذ قرار في ${decidedCount} من ${HR_DATA.overlap_cases.length} حالة` : 'لم تُتخذ أي قرارات بعد في هذه الجلسة'}</div></div>
+        <div className="kpi-card"><div className="label">{decidedCount ? `تم اتخاذ قرار في ${decidedCount} من ${HR_DATA.overlap_cases.length} حالة` : 'لم تُتخذ أي قرارات بعد'}</div></div>
       </div>
+
+      {err ? <div className="card mb-16" style={{ background: 'var(--critical-bg)', color: 'var(--critical)' }}>{err}</div> : null}
 
       <div className="section-head mb-16"><h2>الحالات المفتوحة</h2><span className="hint">مرتبة حسب درجة الخطورة</span></div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {sorted.length === 0 ? (
           <EmptyState icon="check-list">لا توجد حالات مفتوحة حاليًا — كل الحالات المكتشفة تمت مراجعتها</EmptyState>
-        ) : sorted.map((o, idx) => {
-          const caseId = 'case' + idx;
+        ) : sorted.map((o) => {
           const isCrossSponsor = o.review_status.includes('CROSS_SPONSOR');
-          const decision = decisions[caseId];
+          const decision = o.decision;
+          const busy = busyId === o.id;
           return (
-            <div className="card" key={caseId} style={{ borderRight: `3px solid ${o.risk_level === 'CRITICAL' ? 'var(--critical)' : 'var(--warning)'}` }}>
+            <div className="card" key={o.id} style={{ borderRight: `3px solid ${o.risk_level === 'CRITICAL' ? 'var(--critical)' : 'var(--warning)'}` }}>
               <div className="flex justify-between items-start mb-12">
                 <div>
                   <div className="flex items-center gap-8 mb-8"><RiskBadge level={o.risk_level} /><span style={{ fontWeight: 900, fontSize: 16 }}>{o.name}</span></div>
@@ -68,15 +81,17 @@ export default function ReviewCenter() {
               </div>
 
               <div className="flex gap-8" style={{ flexWrap: 'wrap', marginTop: 12 }}>
-                <button className="btn danger sm" onClick={() => decide(caseId, 'DOUBLE_PAYMENT')}>اعتماد صرف مزدوج</button>
-                <button className="btn sm" onClick={() => decide(caseId, 'TRANSFER')}>اعتبارها نقلًا</button>
-                <button className="btn sm" onClick={() => decide(caseId, 'DATA_ERROR')}>اعتبارها خطأ بيانات</button>
-                <button className="btn ghost sm" onClick={() => decide(caseId, 'CLOSED')}>إغلاق الحالة</button>
+                <button className="btn danger sm" disabled={busy} onClick={() => decide(o.id, 'DOUBLE_PAYMENT')}>اعتماد صرف مزدوج</button>
+                <button className="btn sm" disabled={busy} onClick={() => decide(o.id, 'TRANSFER')}>اعتبارها نقلًا</button>
+                <button className="btn sm" disabled={busy} onClick={() => decide(o.id, 'DATA_ERROR')}>اعتبارها خطأ بيانات</button>
+                <button className="btn ghost sm" disabled={busy} onClick={() => decide(o.id, 'CLOSED')}>إغلاق الحالة</button>
               </div>
               {decision ? (
                 <div className="small mb-8" style={{ marginTop: 8 }}>
                   <Badge tone={DECISION_COLORS[decision]}><Icon name="check-list" size={12} /> {DECISION_LABELS[decision]}</Badge>{' '}
-                  <span className="text-muted">(هذا القرار محفوظ مؤقتًا في هذه الجلسة فقط — عند الربط بالـ Backend سيُخزَّن بشكل دائم مع اسم المستخدم والتاريخ)</span>
+                  <span className="text-muted">
+                    بواسطة {o.decided_by_name} — {o.decided_at ? new Date(o.decided_at).toLocaleString('ar-SA') : ''}
+                  </span>
                 </div>
               ) : null}
             </div>
