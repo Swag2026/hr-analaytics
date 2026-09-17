@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { API_BASE_URL } from '../config.js';
+import { useLanguage } from './LanguageContext.jsx';
+import { translateText } from '../i18n.js';
 
 const AuthContext = createContext(null);
 
@@ -10,6 +12,7 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
+  const { isEn } = useLanguage();
   const [token, setToken] = useState(() => localStorage.getItem('hr_auth_token'));
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem('hr_auth_user');
@@ -39,14 +42,14 @@ export function AuthProvider({ children }) {
     });
     if (!res.ok) {
       const detail = await res.json().catch(() => null);
-      throw new Error(detail?.detail || 'فشل تسجيل الدخول');
+      throw new Error(isEn ? translateText(detail?.detail || 'فشل تسجيل الدخول') : (detail?.detail || 'فشل تسجيل الدخول'));
     }
     const data = await res.json();
     setToken(data.access_token);
     setUser(data.user);
     localStorage.setItem('hr_auth_token', data.access_token);
     localStorage.setItem('hr_auth_user', JSON.stringify(data.user));
-  }, []);
+  }, [isEn]);
 
   const logout = useCallback(() => {
     setToken(null);

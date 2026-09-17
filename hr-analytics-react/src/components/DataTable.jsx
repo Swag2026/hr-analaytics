@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { Icon } from '../utils/icons.jsx';
 import { EmptyState } from './Atoms.jsx';
 import { exportObjectsToExcel } from '../utils/excelExport.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
+import { translateText } from '../i18n.js';
 
 /**
  * Ported from buildTable(containerId, columns, rows, opts).
@@ -10,6 +12,11 @@ import { exportObjectsToExcel } from '../utils/excelExport.js';
  */
 export default function DataTable({ columns, rows, opts = {} }) {
   const [q, setQ] = useState('');
+  const { isEn } = useLanguage();
+  const localizedColumns = useMemo(
+    () => (isEn ? columns.map((column) => ({ ...column, label: translateText(column.label) })) : columns),
+    [columns, isEn]
+  );
 
   const filtered = useMemo(() => {
     if (opts.search === false || !q.trim()) return rows;
@@ -38,7 +45,12 @@ export default function DataTable({ columns, rows, opts = {} }) {
           {opts.exportFilename ? (
             <button
               className="btn sm"
-              onClick={() => exportObjectsToExcel(opts.exportFilename, opts.exportSheetName || 'Data', columns, filtered)}
+              onClick={() => exportObjectsToExcel(
+                isEn ? translateText(opts.exportFilename) : opts.exportFilename,
+                isEn ? translateText(opts.exportSheetName || 'Data') : (opts.exportSheetName || 'Data'),
+                localizedColumns,
+                filtered,
+              )}
             >
               <Icon name="download" size={13} /> تحميل Excel
             </button>
@@ -52,12 +64,12 @@ export default function DataTable({ columns, rows, opts = {} }) {
           ) : (
             <table className="data-table">
               <thead>
-                <tr>{columns.map((c) => <th key={c.key}>{c.label}</th>)}</tr>
+                <tr>{localizedColumns.map((c) => <th key={c.key}>{c.label}</th>)}</tr>
               </thead>
               <tbody>
                 {filtered.map((row, idx) => (
                   <tr key={idx} onClick={() => opts.onRowClick && opts.onRowClick(row)}>
-                    {columns.map((c) => (
+                    {localizedColumns.map((c) => (
                       <td key={c.key}>{c.render ? c.render(row) : row[c.key] ?? '—'}</td>
                     ))}
                   </tr>

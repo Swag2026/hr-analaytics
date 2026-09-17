@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { API_BASE_URL } from '../config.js';
 import { useAuth } from './AuthContext.jsx';
+import { useLanguage } from './LanguageContext.jsx';
 
 const DataContext = createContext(null);
 
@@ -41,6 +42,7 @@ export function useHrData() {
 
 export function DataProvider({ children }) {
   const { token, handleUnauthorized } = useAuth();
+  const { isEn } = useLanguage();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -61,11 +63,29 @@ export function DataProvider({ children }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  const monthName = useCallback((m) => (data ? data.meta.month_names[m] || m : m), [data]);
-  const companyLabel = useCallback((c) => (data ? data.meta.company_labels[c] || c : c), [data]);
+  const monthName = useCallback((m) => {
+    if (!data) return m;
+    if (isEn) {
+      const months = { 1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August' };
+      return months[m] || m;
+    }
+    return data.meta.month_names[m] || m;
+  }, [data, isEn]);
+  const companyLabel = useCallback((c) => {
+    if (!data) return c;
+    if (isEn) {
+      const labels = { Swag: 'SWAG', Laroche: 'La Roche', SwagGoldOasis: 'SWAG Gold – Oasis Mall', ViaSky: 'ViaSky' };
+      return labels[c] || data.meta.company_labels[c] || c;
+    }
+    return data.meta.company_labels[c] || c;
+  }, [data, isEn]);
   const defaultMeta = useCallback(
-    () => (data ? `آخر تحديث: ${data.meta.last_updated} · البيانات مبنية من ${data.meta.total_files} ملف مصدر فعلي` : ''),
-    [data]
+    () => (data
+      ? isEn
+        ? `Last updated: ${data.meta.last_updated} · Built from ${data.meta.total_files} actual source files`
+        : `آخر تحديث: ${data.meta.last_updated} · البيانات مبنية من ${data.meta.total_files} ملف مصدر فعلي`
+      : ''),
+    [data, isEn]
   );
 
   const value = { data, error, loading, refresh, monthName, companyLabel, defaultMeta };

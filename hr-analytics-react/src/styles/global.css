@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;900&display=swap');
 
 :root{
   --ink:#0E1B2E;
@@ -25,12 +25,13 @@
   --radius-lg:16px;
   --shadow:0 1px 2px rgba(14,27,46,.06), 0 1px 1px rgba(14,27,46,.04);
   --shadow-md:0 4px 16px rgba(14,27,46,.08);
+  --focus:0 0 0 3px rgba(169,128,62,.18);
 }
 
 *{box-sizing:border-box}
 html,body,#root{margin:0;padding:0}
 body{
-  font-family:'Tajawal',sans-serif;
+  font-family:'Tajawal','Inter',sans-serif;
   background:var(--paper);
   color:var(--text);
   direction:rtl;
@@ -42,6 +43,10 @@ a{color:inherit;text-decoration:none}
 h1,h2,h3,h4{margin:0;font-weight:700;color:var(--ink)}
 p{margin:0}
 button{font-family:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{
+  outline:none;
+  box-shadow:var(--focus);
+}
 table{border-collapse:collapse;width:100%}
 ::selection{background:var(--brass-light)}
 
@@ -80,10 +85,11 @@ table{border-collapse:collapse;width:100%}
 /* ---------------- Topbar ---------------- */
 .topbar{
   background:var(--card);border-bottom:1px solid var(--line);
-  padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;
   position:sticky;top:0;z-index:20;flex-wrap:wrap;
+  box-shadow:0 1px 0 rgba(14,27,46,.02);
 }
-.topbar-title h1{font-size:19px}
+.topbar-title h1{font-size:20px;letter-spacing:-.02em}
 .topbar-title .meta{font-size:12px;color:var(--text-muted);margin-top:2px}
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .filters select, .filters input[type=text]{
@@ -93,6 +99,11 @@ table{border-collapse:collapse;width:100%}
 .filters select:focus, .filters input:focus{outline:2px solid var(--brass-light);border-color:var(--brass)}
 
 .content{padding:24px 28px 60px;flex:1}
+
+html[dir="ltr"] body{font-family:'Inter','Tajawal',sans-serif}
+html[dir="ltr"] .sidebar-brand .name{letter-spacing:-.02em}
+html[dir="ltr"] .nav-item{font-size:13px}
+html[dir="ltr"] .topbar-title .meta{letter-spacing:-.01em}
 
 /* ---------------- KPI cards ---------------- */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px}
