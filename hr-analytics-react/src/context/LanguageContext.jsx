@@ -18,75 +18,6 @@ export function LanguageProvider({ children }) {
     localStorage.setItem('hr_lang', lang);
   }, [lang]);
 
-  // A number of legacy pages contain their copy directly in JSX. Translating
-  // the rendered text nodes here keeps those pages in sync without duplicating
-  // business logic or changing the Arabic data returned by the API.
-  useEffect(() => {
-    const textNodes = new Map();
-    const attributes = new Map();
-    let translating = false;
-    const watchedAttributes = ['placeholder', 'title', 'aria-label'];
-
-    const visit = (root) => {
-      if (!root || translating) return;
-      translating = true;
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-      let node = walker.nextNode();
-      while (node) {
-        if (node.parentElement && !['SCRIPT', 'STYLE'].includes(node.parentElement.tagName)) {
-          if (!textNodes.has(node)) textNodes.set(node, node.nodeValue);
-          node.nodeValue = lang === 'en' ? translateText(textNodes.get(node)) : textNodes.get(node);
-        }
-        node = walker.nextNode();
-      }
-      if (root.querySelectorAll) {
-        root.querySelectorAll('*').forEach((element) => {
-          watchedAttributes.forEach((attribute) => {
-            if (!element.hasAttribute(attribute)) return;
-            if (!attributes.has(element)) attributes.set(element, {});
-            if (attributes.get(element)[attribute] === undefined) {
-              attributes.get(element)[attribute] = element.getAttribute(attribute);
-            }
-            const original = attributes.get(element)[attribute];
-            element.setAttribute(attribute, lang === 'en' ? translateText(original) : original);
-          });
-        });
-      }
-      translating = false;
-    };
-
-    const restore = () => {
-      textNodes.forEach((original, node) => {
-        if (node.isConnected) node.nodeValue = original;
-      });
-      attributes.forEach((values, element) => {
-        if (!element.isConnected) return;
-        Object.entries(values).forEach(([attribute, original]) => element.setAttribute(attribute, original));
-      });
-    };
-
-    visit(document.body);
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'characterData') {
-          const original = textNodes.get(mutation.target) || mutation.target.nodeValue;
-          if (!textNodes.has(mutation.target)) textNodes.set(mutation.target, original);
-          if (!translating && lang === 'en') mutation.target.nodeValue = translateText(original);
-        } else {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE) visit(node.nodeType === Node.TEXT_NODE ? node.parentElement : node);
-          });
-        }
-      });
-    });
-    observer.observe(document.body, { subtree: true, childList: true, characterData: true });
-
-    return () => {
-      observer.disconnect();
-      restore();
-    };
-  }, [lang]);
-
   const toggleLang = useCallback(() => setLang((l) => (l === 'ar' ? 'en' : 'ar')), []);
 
   // t('some.key') walks dot-paths in EN; falls back to the key itself when lang is 'ar'
@@ -102,8 +33,14 @@ export function LanguageProvider({ children }) {
     return node ?? fallback ?? key;
   }, [lang]);
 
+  // tt(arabicText) — word/phrase-level translation via the ARABIC_TO_ENGLISH
+  // dictionary in i18n.js. Safe to call on any string (including ones with
+  // interpolated numbers/dates); returns the original string unchanged in
+  // Arabic mode or when no Arabic dictionary match is found.
+  const tt = useCallback((value) => (lang === 'en' ? translateText(value) : value), [lang]);
+
   return (
-    <LanguageContext.Provider value={{ lang, toggleLang, t, isEn: lang === 'en' }}>
+    <LanguageContext.Provider value={{ lang, toggleLang, t, tt, isEn: lang === 'en' }}>
       {children}
     </LanguageContext.Provider>
   );
